@@ -1,0 +1,95 @@
+name: run
+
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+    inputs:
+      delay_minutes:
+        description: 'delay'
+        required: false
+        default: '0'
+      force:
+        description: 'force'
+        required: false
+        default: false
+        type: boolean
+      mode:
+        description: 'mode'
+        required: false
+        default: 'run'
+      arg:
+        description: 'arg'
+        required: false
+        default: ''
+
+concurrency:
+  group: main
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event_name != 'workflow_dispatch'
+      || github.event.inputs.force == 'true'
+      || (github.event.inputs.mode != '' && github.event.inputs.mode != 'run')
+      || endsWith(format('{0}', github.run_number), '00')
+      || endsWith(format('{0}', github.run_number), '04')
+      || endsWith(format('{0}', github.run_number), '08')
+      || endsWith(format('{0}', github.run_number), '12')
+      || endsWith(format('{0}', github.run_number), '15')
+      || endsWith(format('{0}', github.run_number), '19')
+      || endsWith(format('{0}', github.run_number), '23')
+      || endsWith(format('{0}', github.run_number), '27')
+      || endsWith(format('{0}', github.run_number), '31')
+      || endsWith(format('{0}', github.run_number), '35')
+      || endsWith(format('{0}', github.run_number), '38')
+      || endsWith(format('{0}', github.run_number), '42')
+      || endsWith(format('{0}', github.run_number), '46')
+      || endsWith(format('{0}', github.run_number), '50')
+      || endsWith(format('{0}', github.run_number), '54')
+      || endsWith(format('{0}', github.run_number), '58')
+      || endsWith(format('{0}', github.run_number), '62')
+      || endsWith(format('{0}', github.run_number), '65')
+      || endsWith(format('{0}', github.run_number), '69')
+      || endsWith(format('{0}', github.run_number), '73')
+      || endsWith(format('{0}', github.run_number), '77')
+      || endsWith(format('{0}', github.run_number), '81')
+      || endsWith(format('{0}', github.run_number), '85')
+      || endsWith(format('{0}', github.run_number), '88')
+      || endsWith(format('{0}', github.run_number), '92')
+      || endsWith(format('{0}', github.run_number), '96')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Delay
+        if: ${{ github.event.inputs.delay_minutes > 0 }}
+        env:
+          DELAY: ${{ github.event.inputs.delay_minutes }}
+        run: sleep "$(( DELAY * 60 ))"
+
+      - name: Run
+        env:
+          APP_KEY: ${{ secrets.APP_KEY }}
+          APP_ENV: ${{ secrets.APP_ENV }}
+          MODE: ${{ github.event.inputs.mode || 'run' }}
+          FORCE: ${{ github.event.inputs.force || 'false' }}
+          ARG: ${{ github.event.inputs.arg }}
+        run: bash run.sh
+
+      - name: Save
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add payload
+          git diff --staged --quiet || (git commit -q -m "update [skip ci]" && git pull -q --rebase && git push -q)
